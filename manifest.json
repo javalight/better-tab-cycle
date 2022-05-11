@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
    
-    "name": "Better Tab Cycle",
+    "name": "Better Last Tab Cycle",
     "version": "0.0.1",
     "icons": { "512": "icon.png"},
     "description": "Cycle Last Tabs History",

@@ -33,6 +33,17 @@ function addStack(tabId, windowId) {
   tabStack[windowId].unshift(tabId)
 }
 
+function prune(stack, value) {
+  if (stack) {
+    const index = stack.indexOf(value)
+    if (index > -1) {
+      stack.splice(index, 1);
+    }
+  }
+
+  return stack
+}
+
 function init(stack, windowId) {
   if (!stack[windowId])
     stack[windowId] = []
@@ -75,22 +86,15 @@ setInterval(() => {
     time -= 1
 }, 100)
 
-function prune(stack, value) {
-  if (stack) {
-    const index = stack.indexOf(value)
-    if (index > -1) {
-      stack.splice(index, 1);
-    }
-  }
-
-  return stack
-}
-
 chrome.commands.onCommand.addListener((command) => {
-  if (command == "cycle-back") {
-    goToTabDirection(1)
-  }
-  if (command == "cycle-forward") {
-    goToTabDirection(-1)
+  switch (command) {
+    case "cycle-back":
+      goToTabDirection(1)
+      break;
+    case "cycle-forward":
+      goToTabDirection(-1)
+      break;
+    default:
+    // ---
   }
 });
