@@ -1,5 +1,5 @@
 chrome.tabs.onActivated.addListener((info) => onTabChanged(info.tabId, info.windowId));
-chrome.tabs.onRemoved.addListener((tabId, info) => prune(tabStack[info.windowId],tabId));
+chrome.tabs.onRemoved.addListener((tabId, info) => prune(tabStack[info.windowId], tabId));
 chrome.windows.onFocusChanged.addListener((windowId) => onWindowChanged(windowId));
 
 var tabStack = []
@@ -18,12 +18,13 @@ async function onTabChanged(tabId, windowId) {
     addStack(tabId, windowId)
 }
 
-async function onWindowChanged(windowId) {
-  init(tabStack, windowId)
+async function onWindowChanged(lastWindowId) {
   var t = await getCurrent()
-  if (t)
-    addStack(t.id, windowId)
-  tabIndex = 0
+  if (t) {
+    addStack(t.id, t.windowId)
+    if (lastWindowId != t.windowId)
+      tabIndex = 0
+  }
 }
 
 function addStack(tabId, windowId) {
@@ -66,7 +67,8 @@ setInterval(() => {
   if (tabIndex != 0 && time == 0) {
     tabIndex = 0
     getCurrent().then((t) => {
-      addStack(t.id, t.windowId)
+      if (t)
+        addStack(t.id, t.windowId)
     })
   }
   else if (time > 0)
@@ -80,7 +82,7 @@ function prune(stack, value) {
       stack.splice(index, 1);
     }
   }
-  
+
   return stack
 }
 
