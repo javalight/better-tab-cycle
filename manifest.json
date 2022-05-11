@@ -1,0 +1,29 @@
+{
+    "manifest_version": 3,
+   
+    "name": "Better Tab Cycle",
+    "version": "0.0.1",
+    "icons": { "512": "icon.png"},
+    "description": "Cycle Last Tabs History",
+    "permissions": [
+    ],
+    "background": {
+      "service_worker": "backgroundTabs.js"
+    },
+    "commands": {
+      "cycle-back": {
+        "suggested_key": {
+          "windows": "Alt+E"
+        },
+        "description": "Cycle Tab",
+        "global": true
+      }, 
+      "cycle-forward": {
+        "suggested_key": {
+          "windows": "Alt+Shift+E"
+        },
+        "description": "Cycle Tab",
+        "global": true
+      }
+    }
+  }
