@@ -2,7 +2,7 @@
     "manifest_version": 3,
    
     "name": "Better Last Tab Cycle",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "icons": { "512": "icon.png"},
     "description": "Cycle Last Tabs History in Window",
     "permissions": [
