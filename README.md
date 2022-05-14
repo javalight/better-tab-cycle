@@ -1,4 +1,4 @@
-<p align="left">
+<p align="center">
   <img src="icon.png" width="200" alt="accessibility text">
 </p>
 
