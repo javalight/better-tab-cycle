@@ -6,7 +6,7 @@ chrome.runtime.onSuspend.addListener(saveStorage);
 var map = new Map()
 var position = 0
 var time = 0
-var resetInterval = 10
+var resetIntervalSeconds = 1.0
 
 loadStorage()
 
@@ -101,7 +101,7 @@ function getTabIndexDirection(arr, lastIndex, distance) {
 }
 
 async function resetIfIdel() {
-  time = resetInterval
+  time = resetIntervalSeconds * 10.0
 }
 
 setInterval(async () => {
