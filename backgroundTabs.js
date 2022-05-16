@@ -1,5 +1,6 @@
 chrome.tabs.onActivated.addListener((info) => onTabChanged(info.tabId, info.windowId));
 chrome.tabs.onRemoved.addListener((tabId, info) => onTabRemoved(tabId, info.windowId));
+chrome.tabs.onMoved.addListener((tabId, info) => onTabMoved(tabId, info.windowId));
 chrome.windows.onFocusChanged.addListener((windowId) => onWindowChanged(windowId));
 chrome.runtime.onSuspend.addListener(saveStorage);
 
@@ -31,6 +32,11 @@ async function onTabChanged(tabId, windowId) {
   if (position == 0 || !mapHas(tabId, windowId))
     mapAdd(tabId, windowId)
   saveStorage()
+}
+
+async function onTabMoved(tabId, windowId) {
+  pruneAll(map, tabId)
+  onTabChanged(tabId, windowId)
 }
 
 async function onTabRemoved(tabId, windowId) {
@@ -65,14 +71,22 @@ async function _goToTab(tabId, windowId, direction) {
   }
 }
 
-function prune(arr, value) {
+function prune(arr, tabId) {
   if (arr) {
-    const index = arr.indexOf(value)
+    const index = arr.indexOf(tabId)
     if (index > -1) {
       arr.splice(index, 1);
     }
   }
   return arr
+}
+
+function pruneAll(_map, tabId) {
+  for (let [key, arr] of _map) {
+    prune(arr, tabId)
+    if(arr.length <= 0)
+      _map.delete(key)
+  }
 }
 
 function init(windowId) {
