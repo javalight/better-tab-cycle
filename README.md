@@ -9,8 +9,10 @@
 ⌨ Adjust Key bindings in keyboard settings.
 
 Default Keys: 
-Go Back    Alt + E
-Go Forward Alt + shift + e
+
+  - Go Back    Alt + E
+
+  - Go Forward Alt + shift + e
 
 Behavior: 
 - Only cycles inside the focused window. 
