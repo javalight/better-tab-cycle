@@ -5,9 +5,11 @@ chrome.windows.onFocusChanged.addListener((windowId) => onWindowChanged(windowId
 chrome.runtime.onSuspend.addListener(saveStorage);
 
 var map = new Map()
-var position = 0
+var positions = new Map()
 var time = 0
-var resetIntervalSeconds = 1.0
+var resetIntervalSeconds = 999.0
+var changedWithHotKey = false
+var lastWindowId = -1
 
 loadStorage()
 
@@ -29,9 +31,29 @@ async function getCurrent() {
 }
 
 async function onTabChanged(tabId, windowId) {
-  if (position == 0 || !mapHas(tabId, windowId))
-    mapAdd(tabId, windowId)
+  if (changedWithHotKey) { // when back or forward hotkeys are pressed
+
+  }
+  else { // When new tab is clicked on
+    if (lastWindowId == windowId)
+      mapAddPositionTopOfStack(windowId, getPosition(windowId)) // add last tab to top of stack
+
+    mapAdd(tabId, windowId) // add new tab to top of stack
+    setPosition(windowId, 0)
+  }
+
+
   saveStorage()
+  changedWithHotKey = false
+  lastWindowId = windowId
+}
+
+function getPosition(windowId) {
+  return positions.has(windowId) ? positions.get(windowId) : 0
+}
+
+function setPosition(windowId, value) {
+  return positions.set(windowId, value)
 }
 
 async function onTabMoved(tabId, windowId) {
@@ -43,11 +65,14 @@ async function onTabRemoved(tabId, windowId) {
   prune(map.get(windowId), tabId)
 }
 
-async function onWindowChanged(lastWindowId) {
+async function onWindowChanged(wId) {
   var { id, windowId } = await getCurrent()
-  mapAdd(id, windowId)
-  if (lastWindowId != windowId)
-    position = 0
+  // mapAdd(id, windowId)
+  // if (lastWindowId != windowId)
+  // position = 0
+
+
+  lastWindowId = windowId
 }
 
 function mapHas(tabId, windowId) {
@@ -60,15 +85,9 @@ function mapAdd(tabId, windowId) {
   map.get(windowId).unshift(tabId)
 }
 
-async function _goToTab(tabId, windowId, direction) {
-  if (tabId && tabId > 0) {
-    try {
-      await chrome.tabs.update(tabId, { active: true })
-    } catch (error) { //if tab does not exist prune and to to the next one
-      prune(map.get(windowId), tabId)
-      goToTabDirection(direction)
-    }
-  }
+function mapAddPositionTopOfStack(windowId, position) {
+  if (map.has(windowId) && map.get(windowId).length >= position)
+    mapAdd(map.get(windowId)[position], windowId)
 }
 
 function prune(arr, tabId) {
@@ -84,7 +103,7 @@ function prune(arr, tabId) {
 function pruneAll(_map, tabId) {
   for (let [key, arr] of _map) {
     prune(arr, tabId)
-    if(arr.length <= 0)
+    if (arr.length <= 0)
       _map.delete(key)
   }
 }
@@ -97,10 +116,10 @@ function init(windowId) {
 async function goToTabDirection(direction) {
   var { windowId } = await getCurrent()
   if (map.has(windowId)) {
-    position = getTabIndexDirection(map.get(windowId), position, direction)
-    tabId = map.get(windowId)[position]
+    setPosition(windowId, getTabIndexDirection(map.get(windowId), getPosition(windowId), direction))
+    tabId = map.get(windowId)[getPosition(windowId)]
     _goToTab(tabId, windowId, direction)
-    resetIfIdel()
+    // resetIfIdel()
   }
 }
 
@@ -110,30 +129,52 @@ function getTabIndexDirection(arr, lastIndex, distance) {
     index = 0
   else if (index < 0)
     index = arr.length - 1
-
   return index
+}
+
+async function _goToTab(tabId, windowId, direction) {
+
+  if (tabId && tabId > 0) {
+    try {
+      await chrome.tabs.update(tabId, { active: true })
+    } catch (error) { //if tab does not exist prune and go to the next one
+      prune(map.get(windowId), tabId)
+      goToTabDirection(direction)
+    }
+  }
+}
+
+function isOutOfPosition(tabId, windowId, position) {
+  if (map.has(windowId)) {
+    var tabIdIndexForward = getTabIndexDirection(map.get(windowId), position, - 1)
+    var tabIdIndexBack = getTabIndexDirection(map.get(windowId), position, 0)
+    return !(tabId == map.get(windowId)[tabIdIndexBack] || tabId == map.get(windowId)[tabIdIndexForward])
+  }
+  return true
 }
 
 async function resetIfIdel() {
   time = resetIntervalSeconds * 10.0
 }
 
-setInterval(async () => {
-  if (position != 0 && time <= 0) {
-    position = 0
-    var { id, windowId } = await getCurrent()
-    mapAdd(id, windowId)
-  }
-  else if (time > 0)
-    time -= 1
-}, 100)
+// setInterval(async () => {
+//   if (position != 0 && time <= 0) {
+//     position = 0
+//     var { id, windowId } = await getCurrent()
+//     mapAdd(id, windowId)
+//   }
+//   else if (time > 0)
+//     time -= 1
+// }, 100)
 
 chrome.commands.onCommand.addListener((command) => {
   switch (command) {
     case "cycle-back":
+      changedWithHotKey = true
       goToTabDirection(1)
       break;
     case "cycle-forward":
+      changedWithHotKey = true
       goToTabDirection(-1)
       break;
     default:
