@@ -8,8 +8,10 @@
 
 ⌨ Adjust Key bindings in keyboard settings.
 
+Default Keys: Go Back    Alt + E
+              Go Forward Alt + shift + e
+
 Behavior: 
-- If on current tab for more then 1 second it will reset cycling and puts current tab to top of history stack.
 - Only cycles inside the focused window. 
 
 🎈🥳🎉
