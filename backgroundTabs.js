@@ -82,12 +82,14 @@ function mapHas(tabId, windowId) {
 function mapAdd(tabId, windowId) {
   init(windowId)
   prune(map.get(windowId), tabId)
-  map.get(windowId).unshift(tabId)
+  if (tabId)
+    map.get(windowId).unshift(tabId)
 }
 
 function mapAddPositionTopOfStack(windowId, position) {
-  if (map.has(windowId) && map.get(windowId).length >= position)
+  if (map.has(windowId) && map.get(windowId).length >= position) {
     mapAdd(map.get(windowId)[position], windowId)
+  }
 }
 
 function prune(arr, tabId) {
@@ -133,25 +135,18 @@ function getTabIndexDirection(arr, lastIndex, distance) {
 }
 
 async function _goToTab(tabId, windowId, direction) {
-
-  if (tabId && tabId > 0) {
-    try {
-      await chrome.tabs.update(tabId, { active: true })
-    } catch (error) { //if tab does not exist prune and go to the next one
-      prune(map.get(windowId), tabId)
-      goToTabDirection(direction)
-    }
+  if (!tabId) {//check for null if so continue
+    prune(map.get(windowId), tabId)
+    goToTabDirection(direction)
+  }
+  try {
+    await chrome.tabs.update(tabId, { active: true })
+  } catch (error) { //if tab does not exist prune and go to the next one
+    prune(map.get(windowId), tabId)
+    goToTabDirection(direction)
   }
 }
 
-function isOutOfPosition(tabId, windowId, position) {
-  if (map.has(windowId)) {
-    var tabIdIndexForward = getTabIndexDirection(map.get(windowId), position, - 1)
-    var tabIdIndexBack = getTabIndexDirection(map.get(windowId), position, 0)
-    return !(tabId == map.get(windowId)[tabIdIndexBack] || tabId == map.get(windowId)[tabIdIndexForward])
-  }
-  return true
-}
 
 async function resetIfIdel() {
   time = resetIntervalSeconds * 10.0
