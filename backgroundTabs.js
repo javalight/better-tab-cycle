@@ -6,8 +6,6 @@ chrome.runtime.onSuspend.addListener(saveStorage);
 
 var map = new Map()
 var positions = new Map()
-var time = 0
-var resetIntervalSeconds = 999.0
 var changedWithHotKey = false
 var lastWindowId = -1
 
@@ -42,7 +40,6 @@ async function onTabChanged(tabId, windowId) {
     setPosition(windowId, 0)
   }
 
-
   saveStorage()
   changedWithHotKey = false
   lastWindowId = windowId
@@ -67,11 +64,6 @@ async function onTabRemoved(tabId, windowId) {
 
 async function onWindowChanged(wId) {
   var { id, windowId } = await getCurrent()
-  // mapAdd(id, windowId)
-  // if (lastWindowId != windowId)
-  // position = 0
-
-
   lastWindowId = windowId
 }
 
@@ -146,21 +138,6 @@ async function _goToTab(tabId, windowId, direction) {
     goToTabDirection(direction)
   }
 }
-
-
-async function resetIfIdel() {
-  time = resetIntervalSeconds * 10.0
-}
-
-// setInterval(async () => {
-//   if (position != 0 && time <= 0) {
-//     position = 0
-//     var { id, windowId } = await getCurrent()
-//     mapAdd(id, windowId)
-//   }
-//   else if (time > 0)
-//     time -= 1
-// }, 100)
 
 chrome.commands.onCommand.addListener((command) => {
   switch (command) {
