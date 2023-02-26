@@ -6,7 +6,7 @@ chrome.tabs.onActivated.addListener((info) => onTabChanged(info.tabId, info.wind
 chrome.tabs.onRemoved.addListener((tabId, info) => onTabRemoved(tabId, info.windowId));
 chrome.tabs.onMoved.addListener((tabId, info) => onTabMoved(tabId, info.windowId));
 chrome.windows.onFocusChanged.addListener((windowId) => onWindowChanged(windowId));
-// chrome.runtime.onSuspend.addListener(saveStorage);
+
 chrome.commands.onCommand.addListener((command) => {
   switch (command) {
     case "cycle-back":
@@ -42,15 +42,27 @@ var lastWindowId = -1
 //--------Storage Functions----------------------------------------
 
 async function loadStorage() {
-  let result = await chrome.storage.local.get(['map']);
+  let result = await chrome.storage.local.get(['map', 'positions']);
   if (result.map) {
-    map = new Map(JSON.parse(result.map))
-    console.log("load", map)
+    var _map = new Map(JSON.parse(result.map))
+    if (_map.size > 0) {
+      map = _map
+    }
   }
+
+  if (result.positions)
+    positions = new Map(JSON.parse(result.positions))
+
+  console.log("load", map)
 }
 
 async function saveStorage() {
-  let result = await chrome.storage.local.set({ map: JSON.stringify(Array.from(map.entries())) });
+  if (map.size > 0)
+    await chrome.storage.local.set({
+      map: JSON.stringify(Array.from(map.entries())),
+      positions: JSON.stringify(Array.from(positions.entries()))
+    });
+
   console.log("Save", map)
 }
 
@@ -72,7 +84,6 @@ async function getCurrent() {
 
 async function onTabChanged(tabId, windowId) {
   if (changedWithHotKey) { // when back or forward hotkeys are pressed
-    console.log("changedWithHotKey")
   }
   else { // When new tab is clicked on
     if (lastWindowId == windowId)
@@ -190,19 +201,24 @@ function initUnsaved(windowId) {
 
 
 async function goToTabDirection(direction) {
-  // if (!map)
-  await loadStorage()
+  console.log(map)
+  if (map.size == 0)
+    await loadStorage()
 
   var { id, windowId } = await getCurrent()
 
-  if (map.has(windowId)) {
-    console.log("here", windowId)
-
+  if (map.has(windowId) && map.get(windowId).length > 0) {
     setPosition(windowId, getTabIndexDirection(map.get(windowId), getPosition(windowId), direction))
     goToTabId = map.get(windowId)[getPosition(windowId)]
 
-    if (id !== goToTabId)
+    if (id !== goToTabId) {
+      // console.log("here1")
       _goToTab(goToTabId, windowId, direction)
+    }
+    else if (map.get(windowId).length > 1) {
+      // console.log("here2")
+      goToTabDirection(direction)
+    }
   }
 }
 
@@ -211,21 +227,28 @@ function getTabIndexDirection(arr, lastIndex, distance) {
   if (index >= arr.length)
     index = 0
   else if (index < 0)
-    index = arr.length - 1
+    index = arr.length == 0 ? 0 : arr.length - 1
+
   return index
 }
 
 async function _goToTab(tabId, windowId, direction) {
-  if (!tabId) {//check for null if so continue
-    await prune(map.get(windowId), tabId)
+  if (tabId == null) {//check for null if so continue
+    // console.log("Null", tabId)
+    await prune(windowId, tabId)
     goToTabDirection(direction)
   }
-  try {
-    await chrome.tabs.update(tabId, { active: true })
-    changedWithHotKey = true
-  } catch (error) { //if tab does not exist prune and go to the next one
-    await prune(map.get(windowId), tabId)
-    goToTabDirection(direction)
-  }
+  else
+    try {
+
+      // console.log("Attempt", tabId)
+      await chrome.tabs.update(tabId, { active: true })
+      changedWithHotKey = true
+    } catch (error) { //if tab does not exist prune and go to the next one
+
+      // console.log("Fail")
+      await prune(map.get(windowId), tabId)
+      goToTabDirection(direction)
+    }
 }
 
