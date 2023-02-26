@@ -2,18 +2,31 @@
 
 
 //--------Listeners----------------------------------------
+
+var isInUse = false // run listeners once
 function withAppData(func) {
   return async (...args) => {
-    const appData = await getAppData();
-    await func(appData, ...args);
-    await saveAppData(appData);
-  };
+    if (!isInUse) {
+      isInUse = true
+      const appData = await getAppData();
+      await func(appData, ...args);
+      await saveAppData(appData);
+      isInUse = false
+    }
+  }
 }
 
-chrome.tabs.onActivated.addListener(withAppData(async (appData, info) => { onTabChanged(appData, info.tabId, info.windowId) }));
-chrome.tabs.onRemoved.addListener(withAppData(async (appData, tabId, info) => { onTabRemoved(appData, tabId, info.windowId) }));
-chrome.tabs.onMoved.addListener(withAppData(async (appData, tabId, info) => { onTabMoved(appData, tabId, info.windowId) }));
-// chrome.windows.onFocusChanged.addListener(withAppData(async (appData, windowId) => { onWindowChanged(appData, windowId) }));
+
+chrome.tabs.onActivated.addListener(withAppData(async (appData, info) => {
+  await onTabChanged(appData, info.tabId, info.windowId)
+}));
+chrome.tabs.onRemoved.addListener(withAppData(async (appData, tabId, info) => {
+  await onTabRemoved(appData, tabId, info.windowId)
+}));
+chrome.tabs.onMoved.addListener(withAppData(async (appData, tabId, info) => {
+  await onTabMoved(appData, tabId, info.windowId)
+}));
+// chrome.windows.onFocusChanged.addListener(withAppData(async (appData, windowId) => { await onWindowChanged(appData, windowId) }));
 
 chrome.commands.onCommand.addListener(withAppData(async (appData, command) => {
   switch (command) {
@@ -26,9 +39,7 @@ chrome.commands.onCommand.addListener(withAppData(async (appData, command) => {
     default:
     // ---
   }
-})
-);
-
+}));
 
 
 
@@ -44,7 +55,7 @@ async function getAppData() {
   appData.changedWithHotKey = result.changedWithHotKey || false;
   appData.lastWindowId = result.lastWindowId || -1
 
-  // console.log("load", appData)
+  console.log("load")
 
   return appData
 }
@@ -58,7 +69,7 @@ async function saveAppData(appData) {
     lastWindowId: appData.lastWindowId
   });
 
-  // console.log("Save", appData)
+  console.log("Save")
 }
 
 async function getCurrent() {
@@ -72,16 +83,19 @@ async function getCurrent() {
 
 
 
+
+
+
 //------OnTab Listener Functions------------------------------------------------
 
-
 async function onTabChanged(appData, tabId, windowId) {
-  // console.log("onTabChanged 1")
+  console.log("onTabChanged 1")
 
   if (appData.changedWithHotKey) { // when back or forward hotkeys are pressed
     // console.log("here")
   }
   else { // When new tab is clicked on
+    // if (appData.lastWindowId !== windowId)
     mapAddPositionTopOfStack(appData, windowId, getPosition(appData, windowId)) // add last tab to top of stack
     mapAdd(appData, tabId, windowId) // add new tab to top of stack
     setPosition(appData, windowId, 0)
@@ -90,16 +104,18 @@ async function onTabChanged(appData, tabId, windowId) {
   appData.changedWithHotKey = false
   appData.lastWindowId = windowId
 
-  // console.log("onTabChanged 2")
+  console.log("onTabChanged 2")
 }
 
-async function onWindowChanged(appData, wId) {
-  // console.log("onWindowChanged 1")
+async function onTabRemoved(appData, tabId, windowId) {
+  console.log("onTabRemoved 1 --")
 
-  // var { id, windowId } = await getCurrent()
-  // appData.lastWindowId = windowId
+  prune(appData, windowId, tabId)
+  // newPosition = getNextPosition(appData, windowId, 1)
+  setPosition(appData, windowId, 0)
+  // await saveAppData(appData)
 
-  // console.log("onWindowChanged 2")
+  console.log("onTabRemoved 2 --")
 
 }
 
@@ -108,17 +124,11 @@ async function onTabMoved(appData, tabId, windowId) {
 
   pruneAll(appData, tabId)
   onTabChanged(appData, tabId, windowId)
+  // await saveAppData(appData)
 }
-
-async function onTabRemoved(appData, tabId, windowId) {
-  // console.log("onTabRemoved")
-
-  prune(appData, windowId, tabId)
-}
-
 
 async function onTabCommandAction(appData, direction) {
-  // console.log("goToTabDirection 1 ")
+  console.log("goToTabDirection 1 ")
 
   var { id, windowId } = await getCurrent()
 
@@ -137,8 +147,11 @@ async function onTabCommandAction(appData, direction) {
       try {
         // console.log("Attempt", tabId)
         appData.changedWithHotKey = true
-        await saveAppData(appData)
+        // await saveAppData(appData)
         await chrome.tabs.update(goToTabId, { active: true })
+
+        appData.changedWithHotKey = false
+        appData.lastWindowId = windowId
       } catch (error) { //if tab does not exist prune and go to the next one
 
         // console.log("Fail")
@@ -152,9 +165,19 @@ async function onTabCommandAction(appData, direction) {
   }
 
 
-  // console.log("goToTabDirection 2")
+  console.log("goToTabDirection 2")
 }
 
+
+async function onWindowChanged(appData, wId) {
+  // console.log("onWindowChanged 1")
+
+  // var { id, windowId } = await getCurrent()
+  // appData.lastWindowId = windowId
+
+  // console.log("onWindowChanged 2")
+
+}
 
 
 
