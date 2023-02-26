@@ -9,7 +9,7 @@
        "storage"
     ],
     "background": {
-      "service_worker": "backgroundTabs.js"
+      "service_worker": "backgroundTabs.js" 
     },
     "commands": {
       "cycle-back": {
