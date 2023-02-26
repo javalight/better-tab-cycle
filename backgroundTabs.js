@@ -3,7 +3,7 @@
 
 //--------Listeners----------------------------------------
 
-var isInUse = false // run listeners once
+var isInUse = false // run listeners once, avoids listeners from running at the same time
 function withAppData(func) {
   return async (...args) => {
     if (!isInUse) {
@@ -55,13 +55,12 @@ async function getAppData() {
   appData.changedWithHotKey = result.changedWithHotKey || false;
   appData.lastWindowId = result.lastWindowId || -1
 
-  console.log("load")
+  // console.log("load", appData)
 
   return appData
 }
 
 async function saveAppData(appData) {
-  // if (map.size > 0)
   await chrome.storage.local.set({
     map: JSON.stringify(Array.from(appData.map.entries())),
     positions: JSON.stringify(Array.from(appData.positions.entries())),
@@ -69,7 +68,7 @@ async function saveAppData(appData) {
     lastWindowId: appData.lastWindowId
   });
 
-  console.log("Save")
+  // console.log("Save")
 }
 
 async function getCurrent() {
@@ -89,34 +88,25 @@ async function getCurrent() {
 //------OnTab Listener Functions------------------------------------------------
 
 async function onTabChanged(appData, tabId, windowId) {
-  console.log("onTabChanged 1")
+  // console.log("onTabChanged 1")
 
-  if (appData.changedWithHotKey) { // when back or forward hotkeys are pressed
-    // console.log("here")
-  }
-  else { // When new tab is clicked on
-    // if (appData.lastWindowId !== windowId)
-    mapAddPositionTopOfStack(appData, windowId, getPosition(appData, windowId)) // add last tab to top of stack
-    mapAdd(appData, tabId, windowId) // add new tab to top of stack
-    setPosition(appData, windowId, 0)
-  }
+  mapAdd(appData, windowId, tabId) // add new tab to top of stack
+  setPosition(appData, windowId, 0)
 
-  appData.changedWithHotKey = false
   appData.lastWindowId = windowId
 
-  console.log("onTabChanged 2")
+  // console.log("onTabChanged 2")
 }
 
-async function onTabRemoved(appData, tabId, windowId) {
-  console.log("onTabRemoved 1 --")
+async function onTabRemoved(appData, _tabId, _windowId) {
+  // console.log("onTabRemoved 1 --")
 
-  prune(appData, windowId, tabId)
-  // newPosition = getNextPosition(appData, windowId, 1)
-  setPosition(appData, windowId, 0)
-  // await saveAppData(appData)
+  prune(appData, _windowId, _tabId)
 
-  console.log("onTabRemoved 2 --")
+  var { id, windowId } = await getCurrent()
+  onTabChanged(appData, id, windowId)
 
+  // console.log("onTabRemoved 2 --")
 }
 
 async function onTabMoved(appData, tabId, windowId) {
@@ -124,11 +114,12 @@ async function onTabMoved(appData, tabId, windowId) {
 
   pruneAll(appData, tabId)
   onTabChanged(appData, tabId, windowId)
+
   // await saveAppData(appData)
 }
 
 async function onTabCommandAction(appData, direction) {
-  console.log("goToTabDirection 1 ")
+  // console.log("goToTabDirection 1 ")
 
   var { id, windowId } = await getCurrent()
 
@@ -145,16 +136,9 @@ async function onTabCommandAction(appData, direction) {
     }
     else if (id !== goToTabId) {
       try {
-        // console.log("Attempt", tabId)
-        appData.changedWithHotKey = true
-        // await saveAppData(appData)
         await chrome.tabs.update(goToTabId, { active: true })
-
-        appData.changedWithHotKey = false
-        appData.lastWindowId = windowId
       } catch (error) { //if tab does not exist prune and go to the next one
-
-        // console.log("Fail")
+        console.log("here")
         prune(appData, windowId, goToTabId)
         onTabCommandAction(appData, direction)
       }
@@ -165,7 +149,7 @@ async function onTabCommandAction(appData, direction) {
   }
 
 
-  console.log("goToTabDirection 2")
+  // console.log("goToTabDirection 2")
 }
 
 
@@ -176,7 +160,6 @@ async function onWindowChanged(appData, wId) {
   // appData.lastWindowId = windowId
 
   // console.log("onWindowChanged 2")
-
 }
 
 
@@ -222,21 +205,21 @@ function getNextPosition(appData, windowId, distance) {
 //----------Map Functions-----------------------------------------------
 
 
-function mapHas(appData, tabId, windowId) {
+function mapHasTab(appData, windowId, tabId) {
   return appData.map.has(windowId) && appData.map.get(windowId).includes(tabId)
 }
 
-function mapAdd(appData, tabId, windowId) {
-  init(appData, windowId)
-  prune(appData, windowId, tabId)
-  if (tabId) {
-    appData.map.get(windowId).unshift(tabId)
-  }
-}
+function mapAdd(appData, windowId, tabId) {
+  var position = getPosition(appData, windowId)
+  var tabArr = appData.map.get(windowId)
 
-function mapAddPositionTopOfStack(appData, windowId, position) {
-  if (appData.map.has(windowId) && appData.map.get(windowId).length >= position) {
-    mapAdd(appData, appData.map.get(windowId)[position], windowId)
+  init(appData, windowId)
+  if (tabId && tabArr) {
+    if (position > 0)
+      tabArr.push(...tabArr.splice(0, position)) // rotate around position so position is at index 0 [1,2,3,4] to [3,4,1,2] if position was 2
+
+    prune(appData, windowId, tabId)
+    tabArr.unshift(tabId)
   }
 }
 
