@@ -10,9 +10,11 @@
 
 Default Keys: 
 
-  - Go Back    Alt + E
+  - Go Back    Alt + Shift + S
 
-  - Go Forward Alt + shift + e
+  - Go Forward Alt + Shift + F
+
+It Is Recommended to Change keyboard shortcuts chrome://extensions/shortcuts
 
 Behavior: 
 - Only cycles inside the focused window. 

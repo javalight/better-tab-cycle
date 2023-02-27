@@ -2,9 +2,9 @@
     "manifest_version": 3,
    
     "name": "Go Back Last Tab History",
-    "version": "0.0.3",
+    "version": "1.0.0",
     "icons": { "512": "icon.png"},
-    "description": "Cycle Last Tabs History in Window",
+    "description": "Go Back and Forward to Last Viewed Tabs In Current Window",
     "permissions": [
        "storage"
     ],
@@ -14,17 +14,15 @@
     "commands": {
       "cycle-back": {
         "suggested_key": {
-          "windows": "Alt+E"
+          "default": "Alt+Shift+S"
         },
-        "description": "Cycle Tab",
-        "global": true
+        "description": "Cycle Tab"
       }, 
       "cycle-forward": {
         "suggested_key": {
-          "windows": "Alt+Shift+E"
+          "default": "Alt+Shift+F"
         },
-        "description": "Cycle Tab",
-        "global": true
+        "description": "Cycle Tab"
       }
     }
   }
