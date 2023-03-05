@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.png" width="200" alt="accessibility text">
+  <img src="icon.png" width="75" alt="accessibility text">
 </p>
 
 # Go Back Last Tab History 
