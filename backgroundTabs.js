@@ -29,7 +29,7 @@ chrome.tabs.onMoved.addListener(withAppData(async (appData, tabId, info) => {
 // chrome.windows.onFocusChanged.addListener(withAppData(async (appData, windowId) => { await onWindowChanged(appData, windowId) }));
 
 
-chrome.commands.onCommand.addListener(debounce(90, withAppData(async (appData, command) => {
+chrome.commands.onCommand.addListener(debounce(100, withAppData(async (appData, command) => {
   switch (command) {
     case "cycle-back":
       await onTabCommandAction(appData, 1) // Right
