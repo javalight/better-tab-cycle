@@ -28,7 +28,8 @@ chrome.tabs.onMoved.addListener(withAppData(async (appData, tabId, info) => {
 }));
 // chrome.windows.onFocusChanged.addListener(withAppData(async (appData, windowId) => { await onWindowChanged(appData, windowId) }));
 
-chrome.commands.onCommand.addListener(withAppData(async (appData, command) => {
+
+chrome.commands.onCommand.addListener(debounce(90, withAppData(async (appData, command) => {
   switch (command) {
     case "cycle-back":
       await onTabCommandAction(appData, 1) // Right
@@ -37,9 +38,8 @@ chrome.commands.onCommand.addListener(withAppData(async (appData, command) => {
       await onTabCommandAction(appData, -1) // Left
       break;
     default:
-    // ---
   }
-}));
+})));
 
 
 
@@ -252,3 +252,16 @@ function init(appData, windowId) {
 
 
 
+
+//----------Util Functions-----------------------------------------------
+
+
+function debounce(wait, func) { // Used to prevent skipping on double mouse click (cheap mouse)
+  let time = Date.now();
+  return async (...args) => {
+    if (Math.abs(Date.now() - time) > wait) {
+      await func(...args);
+      time = Date.now()
+    }
+  };
+}
